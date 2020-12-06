@@ -1,7 +1,7 @@
 (ns aoc2020-clj.day4
   (:require [clojure.java.io :as io]
             [clojure.string :as str]))
-FBFBBFFRLR
+
 (def required-fields #{"byr" "iyr" "eyr" "hgt" "hcl" "ecl" "pid"})
 
 (defn height-validator [hgt unit]
