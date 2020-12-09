@@ -34,4 +34,5 @@
 
 ;; I missed the obvious (in hindsight) trick - you could just convert to a binary
 ;; string where fronts are 0 and backs are 1, then simply get the integer represented
-;; by that binary string.  See yet again transducer's github for an example of this
+;; by that binary string by parsing as base 2.  See yet again transducer's github for
+;; an example of this

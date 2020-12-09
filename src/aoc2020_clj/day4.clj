@@ -10,7 +10,7 @@
       (<= 150 hgt 193)
       (<= 59  hgt 76))))
 
-(def required-fields-2
+(def passport-rules
   [{:pat #"byr:(\d{4})"       :validator (fn [yr] (-> yr read-string (#(<= 1920 % 2002))))}
    {:pat #"iyr:(\d{4})"       :validator (fn [yr] (-> yr read-string (#(<= 2010 % 2020))))}
    {:pat #"eyr:(\d{4})"       :validator (fn [yr] (-> yr read-string (#(<= 2020 % 2030))))}
@@ -21,24 +21,24 @@
 
 (def input (slurp (io/resource "day4.txt")))
 
-(defn valid-pt1? [pw]
-  (every? #(re-find (re-pattern %) pw) required-fields))
+(defn all-fields-present? [passport]
+  (every? #(re-find (re-pattern %) passport) required-fields))
 
 (defn validate [validator]
   (->> (str/split input #"\n\n")
        (filter validator)
        count))
 ;; part 1
-(validate valid-pt1?)
+(validate all-fields-present?)
 ;; part 2
 (defn validate-rule [{:keys [pat validator]} passport]
   (when-let [[whole-match & match-groups] (re-find pat passport)]
     (apply validator match-groups)))
 
-(defn valid-pt2? [pw]
-  (every? #(validate-rule % pw) required-fields-2))
+(defn all-rules-followed? [pw]
+  (every? #(validate-rule % pw) passport-rules))
 
-(validate valid-pt2?)
+(validate all-rules-followed?)
 
 ;; day 4 learnings:
 
@@ -49,4 +49,5 @@
 ;; pid:0123456789 which would be invalid since it's 10 digits.  Matching *exactly*
 ;; `n` digits required either bounding it with ^pat$ which only works if the whole
 ;; string matches, e.g. starts with and ends with pat, so I chose to capture everything
-;; and verify the count in the validator
+;; and verify the count in the validator.  Aside from this one bug I'm relatively happy
+;; with the data driven approach.

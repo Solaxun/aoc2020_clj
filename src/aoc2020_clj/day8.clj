@@ -38,3 +38,12 @@
         (map execute
              (concat (replace-instr parsed "jmp" "nop")
                      (replace-instr parsed "nop" "jmp"))))
+
+;; lessons learned:
+
+;; I generated every possible replacement using `replace-instr`, and only then tested
+;; the program to see if it would terminate or not.  A better approach taken by most
+;; is to start executing the program, and at each step in the execution if the instr
+;; is jmp or nop, replace with the other and return if it terminates.  This way you
+;; return the first time you encounter an instruction that would result in termination,
+;; avoiding the need to generate the remaining replacements.
