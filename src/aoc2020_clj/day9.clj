@@ -20,7 +20,7 @@
 
 ;; part 1
 (def part1-answer (no-sum-25 parsed))
-
+part1-answer
 ;; find a contiguous block that sums to part1 answer - we know that the number
 ;; cannot be larger than part1 answer, so filter those values out first
 (defn contiguous-sum? [chunk-size]
