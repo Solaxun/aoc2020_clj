@@ -32,33 +32,3 @@
 
 (def possible-arrangements (memoize possible-arrangements))
 (possible-arrangements 0 parsed)
-
-;; additional attempt, this one works but was overly complicated and replaced by the above
-(defn count-paths [adapters]
-  (let [cache (atom {})]
-    (letfn [(sum-paths [a]
-              (if-let [cached (@cache a)]
-                cached
-                (if-let [choices (seq (filter #(adapter-fits? a %) adapters))]
-                  (let [paths-from-here (reduce + (map sum-paths choices))]
-                    (swap! cache assoc a paths-from-here)
-                    paths-from-here)
-                  1)))]
-      (sum-paths 0))))
-(count-paths (arrange-adapters parsed))
-
-;; this one didn't work because it tried to generate all possible paths, which for the input has an upper
-;; bound of 3 ^ input-size (101), or a number to big to even reasonably print, let alone trillions
-(defn dfs [adapters]
-  (loop [paths [[(first adapters)]]
-         res 0
-         i 0]
-    (if (empty? paths)
-      res
-      (let [path (peek paths)
-            choices (filter #(adapter-fits? (last path) %) adapters)
-            new-paths (map #(conj path %) choices)]
-        #_(println path choices new-paths)
-        (if (empty? new-paths)
-          (recur (pop paths) (inc res) (inc i))
-          (recur (into (pop paths) new-paths) res (inc i)))))))
