@@ -11,6 +11,5 @@
                    (not= i j 0))]
     [(+ x i) (+ j y)]))
 
-
-
-
+(defn manhattan-distance [pt1 pt2]
+  (reduce + (map (fn [a b] (Math/abs (- a b))) pt1 pt2)))
