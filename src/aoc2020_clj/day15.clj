@@ -5,7 +5,7 @@
 (def input (slurp (io/resource "day15.txt")))
 (def parsed (map #(Integer/parseInt %) (str/split input #",")))
 
-(defn stupid-elves [start-nums target]
+(defn play-memory [start-nums target]
   (loop [seen (into {} (map-indexed #(vector %2 (inc %1)) (drop-last start-nums)))
          last-spoken (last start-nums)
          i (count start-nums)]
@@ -15,6 +15,6 @@
              (if (seen last-spoken) (- i (seen last-spoken)) 0)
              (inc i)))))
 ;; part 1
-(stupid-elves parsed 2020)
+(play-memory parsed 2020)
 ;; part 2 ~ 40 seconds, too lazy to optimize
-(stupid-elves parsed 30000000)
+(play-memory parsed 30000000)
