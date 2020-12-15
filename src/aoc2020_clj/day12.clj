@@ -32,36 +32,23 @@
       "R" ((clockwise-rotations        degrees)  wp-x wp-y)
       "L" ((clockwise-rotations (- 360 degrees)) wp-x wp-y))))
 
-(defn move-forward [coord heading steps]
-  (reduce #(mapv + %1 %2)
-    coord
-    (repeat steps (moves heading))))
-
-(defn move-toward-waypoint [coord waypoint waypoint-magnitude]
-  (let [move (mapv (partial * waypoint-magnitude) waypoint)]
+(defn move-forward [coord move-vec magnitude]
+  (let [move (mapv (partial * magnitude) move-vec)]
     (mapv + coord move)))
 
-(defn travel [ship directions]
-  (reduce (fn [{:keys [heading coord] :as ship} [dir num]]
-            (case dir
-              ("R" "L") (update ship :heading turn-n-degrees dir num)
-              "F" (update ship :coord move-forward heading num)
-              ("N" "S" "E" "W") (update ship :coord move-forward dir num)))
-    ship
-    directions))
-;; part 1
-(grids/manhattan-distance [0 0] (:coord (travel ship directions)))
-;; part 2
-(def fleet {:ship ship :waypoint waypoint})
-
-(defn travel2 [fleet directions]
+(defn travel [fleet directions]
   (reduce (fn [{waypoint :waypoint {:keys [coord heading]} :ship :as fleet}
                [dir num]]
             (case dir
-              ("R" "L") (update fleet :waypoint rotate-around-origin dir num)
-              "F" (update-in fleet [:ship :coord] move-toward-waypoint waypoint num)
-              ("N" "S" "E" "W") (update fleet :waypoint move-forward dir num)))
+              ("R" "L") (if waypoint
+                          (update fleet :waypoint rotate-around-origin dir num)
+                          (update-in fleet [:ship :heading] turn-n-degrees dir num))
+              "F" (update-in fleet [:ship :coord] move-forward (or waypoint (moves heading)) num)
+              ("N" "S" "E" "W") (if waypoint
+                                  (update fleet :waypoint move-forward (moves dir) num)
+                                  (update-in fleet [:ship :coord] move-forward (moves dir) num))))
           fleet
           directions))
 
-(grids/manhattan-distance [0 0] (get-in (travel2 fleet directions) [:ship :coord]))
+(grids/manhattan-distance [0 0] (get-in (travel {:ship ship :waypoint nil} directions) [:ship :coord]))
+(grids/manhattan-distance [0 0] (get-in (travel {:ship ship :waypoint waypoint} directions) [:ship :coord]))
