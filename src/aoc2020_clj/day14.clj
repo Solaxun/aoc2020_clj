@@ -4,7 +4,15 @@
             [clojure.math.combinatorics :as combs]))
 
 (def input (slurp (io/resource "day14.txt")))
-(def parsed (str/split-lines input))
+
+(defn parse-line [line]
+  (if (str/starts-with? line "mask")
+    [:mask nil (last (str/split line #" = "))]
+    [:mem
+     (->> line (re-find #"\[(\d+)\]") last (Integer/parseInt))
+     (-> line (str/split #" = ") last (Integer/parseInt))]))
+
+(def parsed (map parse-line (str/split-lines input)))
 
 (defn left-pad-str [total-size pad xs]
   (str (str/join (repeat (- total-size (count xs)) pad))
@@ -16,23 +24,6 @@
 (defn mask [mask num]
   (str/join (map (fn [m n] (if (= \X m) n m)) mask (int->bin36 num))))
 
-(defn get-reg [instr]
-  (Long/parseLong (last (re-find #"\[(\d+)\]" instr))))
-
-(defn get-num [instr]
-  (Long/parseLong (last (re-find #" = (\d+)" instr))))
-;; part 1
-(->> (reduce (fn [{:keys [cur-mask registers] :as state} instr]
-               (if (str/starts-with? instr "mask")
-                 (assoc state :cur-mask (last (str/split instr #"mask = ")))
-                 (assoc-in state [:registers (get-reg instr)]
-                           (Long/parseLong (mask cur-mask (get-num instr)) 2))))
-             {:cur-mask nil :registers {}}
-             parsed)
-     :registers
-     vals
-     (reduce +))
-;; part 2
 (defn replace-matches-with [cs target replacements]
   (first (reduce (fn [[new-cs replacements] c]
                    (if (= target c)
@@ -49,15 +40,20 @@
 (defn mask2 [mask num]
   (str/join (map (fn [m n] (if (or (= \1 m) (= \X m)) m n)) mask (int->bin36 num))))
 
-(->> (reduce (fn [{:keys [cur-mask registers] :as state} instr]
-               (if (str/starts-with? instr "mask")
-                 (assoc state :cur-mask (last (str/split instr #"mask = ")))
-                 (let [r (get-reg instr)
-                       n (get-num instr)
-                       ps (map #(Long/parseLong % 2) (permute-bits (mask2 cur-mask r)))]
-                   (update state :registers (partial apply merge) (reduce #(assoc %1 %2 n) registers ps)))))
-             {:cur-mask nil :registers {}}
-             parsed)
-     :registers
-     vals
-     (reduce +))
+(defn solve [& {part :part}]
+  (->> (reduce (fn [{:keys [cur-mask registers] :as state} [op reg num]]
+                 (if (= op :mask)
+                   (assoc state :cur-mask num)
+                   (if (= part 1)
+                     (update state :registers assoc reg (Long/parseLong (mask cur-mask num) 2))
+                     (update state :registers (partial apply merge)
+                             (reduce #(assoc %1 %2 num)
+                                     registers
+                                     (map #(Long/parseLong % 2) (permute-bits (mask2 cur-mask reg))))))))
+               {:cur-mask nil :registers {}}
+               parsed)
+       :registers
+       vals
+       (reduce +)))
+(solve :part 1)
+(solve :part 2)
