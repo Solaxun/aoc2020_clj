@@ -1,4 +1,4 @@
- (ns aoc2020-clj.day16
+(ns aoc2020-clj.day16
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.set :as set]))
@@ -6,19 +6,15 @@
 (def input (slurp (io/resource "day16.txt")))
 (def parsed (str/split input #"\n\n"))
 
-(def rules
+(def field-rules
   (->> input
        (re-seq #"(\d+)\-(\d+) or (\d+)\-(\d+)")
        (map rest)
-       (map (fn [nums] (map #(Integer/parseInt %) nums)))))
+       (map (fn [rs] (map #(Integer/parseInt %) rs)))
+       (map (fn [[a b c d]] (concat (range a (inc b)) (range c (inc d)))))))
 
-(def field-rules
-  (for [r rules :let [[[a b] [c d]] (partition 2 r)
-                      valid-range (set (concat (range a (inc b))
-                                               (range c (inc d))))]]
-    valid-range))
-
-(def my-ticket (map #(Integer/parseInt %) (re-seq #"\d+" (second parsed))))
+(def my-ticket
+  (map #(Integer/parseInt %) (re-seq #"\d+" (second parsed))))
 
 (def other-tickets
   (->> parsed
@@ -28,7 +24,9 @@
        (map #(str/split % #","))
        (map (fn [line] (map #(Integer/parseInt %) line)))))
 
-(def field-rules-combined (reduce set/union field-rules))
+(def field-rules-combined
+  (reduce set/union (map set field-rules)))
+
 ;; part 1
 (reduce + (for [o (apply concat other-tickets)
                 :when (not (contains? field-rules-combined o))]
@@ -38,33 +36,28 @@
 (defn valid-ticket? [ticket]
   (every? #(contains? field-rules-combined %) ticket))
 
-(def valid-tickets (filter valid-ticket? other-tickets))
-
-(def options
+(def rowix->possible-fields
   (map-indexed (fn [seat-index ticket-section]
                  (vector seat-index
-                       (keep-indexed (fn [field-index rules]
-                                       (when (empty? (set/difference (set ticket-section) rules))
-                                         field-index))
-                                     field-rules)))
-       (apply map vector valid-tickets)))
+                         (set (keep-indexed (fn [field-index rules]
+                                              (when (empty? (set/difference (set ticket-section) rules))
+                                                field-index))
+                                            (map set field-rules)))))
+       (apply map vector (filter valid-ticket? other-tickets))))
 
-;; row-index:rule-index
 (def field-orders
-  (loop [seen #{}
-         field-order []
-         [[row-index field-options :as o] & options] (sort-by (comp count second) options)]
-    (if-not o
-      field-order
-      (recur (set/union (set field-options) seen)
-             (conj field-order [row-index (first (set/difference (set field-options) seen))])
-             options))))
+  (second (reduce (fn [[seen fieldix->rowix] [rowix possible-field-indices]]
+                    [(set/union possible-field-indices seen)
+                     (assoc fieldix->rowix (first (set/difference possible-field-indices seen))
+                                           rowix)])
+                  [#{} {}]
+                  (sort-by (comp count second) rowix->possible-fields))))
 
-(def departure-indicies
+(def departure-indices
   (set (keep-indexed #(when (str/starts-with? %2 "departure") %1)
                      (str/split-lines (first parsed)))))
 
-(def index-of-departures
-  (keep #(when (departure-indicies (second %)) (first %)) field-orders))
+(def departure-row-indices
+  (map #(field-orders %) departure-indices))
 
-(apply * (map #(nth my-ticket %) index-of-departures))
+(apply * (map #(nth my-ticket %) departure-row-indices))
