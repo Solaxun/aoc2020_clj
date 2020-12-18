@@ -31,23 +31,20 @@
                               [[x y z w] \.])]]
              cube)))
 
-(defn add-neighboring-cubes [neighbor-func gen]
-  (reduce-kv (fn [gen2 coord cube]
-               (let [neighbors (neighbor-func coord)]
-                 (merge (zipmap (remove gen2 neighbors)
-                                (repeat \.))
-                        gen2)))
-             gen
-             gen))
+(defn cube-on? [ndims coord cube gen]
+  (let [oncount (count (keep (fn [coord] (when (= \# (get gen coord)) coord))
+                             (neighbors-ndims ndims coord)))]
+    (contains? #{[2 \#] [3 \#] [3 \.]}
+               [oncount cube])))
 
 (defn evolve [ndims gen]
-  (into {} (map (fn [[coord cube]]
-                  (let [neighbors (map #(get gen % \.) (neighbors-ndims ndims coord))
-                        oncount (count (filter #{\#} neighbors))]
-                    (cond (and (#{2 3} oncount) (= \# cube)) [coord \#]
-                          (and (= oncount 3) (= cube \.)) [coord \#]
-                          :else [coord \.])))
-                (add-neighboring-cubes (partial neighbors-ndims ndims) gen))))
+  (->> gen
+       (mapcat (fn [[coord cube]] (neighbors-ndims ndims coord)))
+       (#(zipmap % (repeat \.)))
+       (#(merge % gen))
+       (keep (fn [[coord cube]] (when (cube-on? ndims coord cube gen)
+                                  [coord \#])))
+       (into {})))
 
 (count (filter (comp #(= % \#) val) (nth (iterate (partial evolve 3) initial-state) 6)))
 (count (filter (comp #(= % \#) val) (nth (iterate (partial evolve 4) initial-state2) 6)))
