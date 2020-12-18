@@ -1,35 +1,22 @@
 (ns aoc2020-clj.day17
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojure.math.combinatorics :as combs]
-            [clojure.set :as set]))
+            [clojure.math.combinatorics :as combs]))
 
 (def input (slurp (io/resource "day17.txt")))
 (def parsed (str/split-lines input))
 
 (defn neighbors-ndims [ndims coord]
-  (for [deltas (combs/selections [1 0 -1] ndims)
+  (for [deltas (combs/selections [-1 0 1] ndims)
         :when (apply not= 0 deltas)]
     (mapv + coord deltas)))
 
-(def initial-state
-  (into {} (for [[x row]  (map-indexed vector parsed)
-                 [y cube] (map-indexed vector row)
-                 z [1 0 -1]
-                 :let [cube (if (zero? z)
-                              [[x y z] cube]
-                              [[x y z] \.])]]
-             cube)))
-
-(def initial-state2
-  (into {} (for [[x row]  (map-indexed vector parsed)
-                 [y cube] (map-indexed vector row)
-                 z [1 0 -1]
-                 w [1 0 -1]
-                 :let [cube (if (= 0 z w)
-                              [[x y z w] cube]
-                              [[x y z w] \.])]]
-             cube)))
+(defn initial-state [ndims]
+  (let [gen1-given (into {} (for [[x row]  (map-indexed vector parsed)
+                                  [y cube] (map-indexed vector row)]
+                              [(into [x y] (repeat (- ndims 2) 0)) cube]))
+        gen1-remaining (zipmap (combs/selections [-1 0 1] ndims) (repeat \.))]
+    (merge gen1-remaining gen1-given)))
 
 (defn cube-on? [ndims coord cube gen]
   (let [oncount (count (keep (fn [coord] (when (= \# (get gen coord)) coord))
@@ -39,12 +26,20 @@
 
 (defn evolve [ndims gen]
   (->> gen
-       (mapcat (fn [[coord cube]] (neighbors-ndims ndims coord)))
+       (mapcat (fn [[coord _]] (neighbors-ndims ndims coord)))
        (#(zipmap % (repeat \.)))
        (#(merge % gen))
        (keep (fn [[coord cube]] (when (cube-on? ndims coord cube gen)
                                   [coord \#])))
        (into {})))
 
-(count (filter (comp #(= % \#) val) (nth (iterate (partial evolve 3) initial-state) 6)))
-(count (filter (comp #(= % \#) val) (nth (iterate (partial evolve 4) initial-state2) 6)))
+(defn darwin [ndims starting-gen]
+  (->> ndims
+       starting-gen
+       (iterate (partial evolve ndims))
+       (#(nth % 6))
+       (filter (comp (partial = \#) val))
+       count))
+
+(darwin 3 initial-state)
+(darwin 4 initial-state)
